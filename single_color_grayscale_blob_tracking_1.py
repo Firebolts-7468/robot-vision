@@ -2,7 +2,12 @@
 #
 # This example shows off single color grayscale tracking using the OpenMV Cam.
 
-import sensor, image, time
+import sensor, image, time, utime
+
+import ustruct as struct
+
+from pyb import I2C
+import pyb
 
 # Color Tracking Thresholds (Grayscale Min, Grayscale Max)
 # The below grayscale threshold is set to only find extremely bright white areas.
@@ -10,7 +15,7 @@ thresholds = (65, 255)
 
 sensor.reset()
 sensor.set_pixformat(sensor.GRAYSCALE)
-sensor.set_framesize(sensor.VGA)
+sensor.set_framesize(sensor.QVGA)
 sensor.skip_frames(time = 2000)
 sensor.set_auto_gain(False) # must be turned off for color tracking
 sensor.set_auto_whitebal(False) # must be turned off for color tracking
@@ -18,10 +23,16 @@ sensor.set_auto_exposure(False, \
       exposure_us = int(6000))
 clock = time.clock()
 
+
+i2c = I2C(2)
+i2c.init(I2C.SLAVE, addr=4)
+
 # Only blobs that with more pixels than "pixel_threshold" and more area than "area_threshold" are
 # returned by "find_blobs" below. Change "pixels_threshold" and "area_threshold" if you change the
 # camera resolution. "merge=True" merges all overlapping blobs in the image.
 
+started = False
+i = 0
 while(True):
     clock.tick()
     # Take a picture
@@ -29,7 +40,7 @@ while(True):
 
     # Find all the "blobs" (see note above about thresholds)
     blobs = img.find_blobs([thresholds], pixels_threshold=100, area_threshold=100, merge=True)
-
+    # print (len(blobs))
     # IF there's two blobs and they're rotated at the right angle, then figure out where the target is
     if len(blobs) == 2:
         if (((blobs[0]).rotation()*180/3.14 > 90) and ((blobs[1]).rotation()*180/3.14 < 90)) \
@@ -48,7 +59,16 @@ while(True):
 
             #find the point in the center of the two blobs, in pixels from center of image
             center = (blobs[0].cx() + blobs[1].cx()) / 2 - img.width() / 2
-            print(center)
+            # print(center)
+
+            if started == False:
+                start = utime.ticks_ms()
+                started = True
+            if started and utime.ticks_diff(utime.ticks_ms(), start) > 1000:
+                i2c.send(struct.pack('<i', int(center)))
+                print('SEND: %i' % center)
+                i += 1
+                started = False
 
             #find the rotation of the robot
 

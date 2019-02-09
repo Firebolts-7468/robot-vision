@@ -13,11 +13,7 @@ sensor.skip_frames(time = 2000)     # Wait for settings take effect.
 clock = time.clock()                # Create a clock object to track the FPS.
 
 i2c = I2C(2)
-
-print('test')
-print(dir(clock))
 i2c.init(I2C.SLAVE, addr=4)
-print('test22')
 
 # print(devices)
 
@@ -33,12 +29,6 @@ while(True):
         start = utime.ticks_ms()
         started = True
     if started and utime.ticks_diff(utime.ticks_ms(), start) > 1000:
-        msg = 'hello'
         i2c.send('hello')
-        print('sent %s' % msg)
         i += 1
         started = False
-
-    # if utime.ticks_diff(utime.ticks_ms(), start) > 500:
-
-                                    ### to the IDE. The FPS should increase once disconnected.
